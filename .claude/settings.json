@@ -5,8 +5,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/log-prompts.sh\" 2>/dev/null || true",
-            "timeout": 30
+            "command": "bash \"${CLAUDE_PROJECT_DIR:-.}/.claude/hooks/on-stop.sh\" 2>/dev/null || true",
+            "timeout": 60
           }
         ]
       }

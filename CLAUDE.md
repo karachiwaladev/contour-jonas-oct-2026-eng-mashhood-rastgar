@@ -44,6 +44,10 @@ Keep this file short and abstract. It is an index, not a manual.
 ## Working rules
 
 - Start the loop with `/loop 1m /factory-loop`.
-- Claim a ticket with 👀 before working it. Close as completed with a comment.
+- Claim a ticket with 👀. Answer tickets close with a comment. Build tickets go
+  questions, plan, approval, build, browser verification with screenshots.
+- Every loop comment ends with `<!-- factory:phase=NAME -->`; a reply without it
+  is a human. Never delete files, history, branches, issues, or comments.
+- Every stop auto-commits and pushes (`.claude/hooks/on-stop.sh`).
 - Commit messages reference tickets as `(#N)`, never `closes #N`.
 - Push to `main` before closing any ticket that changed files.
