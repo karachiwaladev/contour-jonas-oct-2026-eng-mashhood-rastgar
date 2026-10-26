@@ -29,6 +29,7 @@ The loop and the ticket author may share one GitHub login. Every comment the loo
 | `questions` | answers | Post the plan: files to create or change, behaviour, what will be verified in the browser. End with "Reply 'approved' or ask for changes." Marker `plan`. Leave open. |
 | `plan` | asks for changes | Revise the plan and post it again. Marker `plan`. Leave open. |
 | `plan` | approval | Build. Verify in Chrome with the extension tools. Screenshot each verified behaviour with `save_to_disk: true`. Copy the PNGs to `docs/screenshots/ticket-N/`. Commit and `git push origin main`. Then comment with the result, the commit SHA, and each screenshot as `![name](https://github.com/OWNER/REPO/blob/main/docs/screenshots/ticket-N/name.png?raw=true)`. Marker `done`. Close `--reason completed`. |
+| `done` | comment after reopen | Treat as `questions`: read the reply, answer or post a revised plan. |
 | any | - | Cannot proceed as written: comment the specific blocker or question. Marker `blocked`. Leave open. A reply lists it again with phase `blocked`; treat it as `questions`. |
 
 Push before you comment, or the image links return 404. Serve a static project with `python3 -m http.server PORT` from its folder and stop the server when done.
