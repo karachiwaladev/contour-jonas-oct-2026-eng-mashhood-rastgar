@@ -12,6 +12,7 @@ The loop and the ticket author may share one GitHub login. Every comment the loo
 ## One tick
 
 1. **List tickets:** `cd "$(git rev-parse --show-toplevel)" && git checkout -q main && bash .claude/skills/factory-loop/scripts/tickets.sh`
+   If `git branch --show-current` is a `ticket-N` branch with a dirty tree (a previous build tick died), first commit that ticket's files to the branch as `wip (#N)`, then check out `main`.
    JSON lines: number, title, body, phase, pr, reply. No output: say "Queue empty" and stop.
 2. **For each ticket, oldest first,** act by phase. Claim a `new` ticket first: `gh api -X POST 'repos/{owner}/{repo}/issues/N/reactions' -f content=eyes`
 3. **Recap:** one line per ticket with its number, phase, and the action taken. Every tick starts and ends on `main`.
