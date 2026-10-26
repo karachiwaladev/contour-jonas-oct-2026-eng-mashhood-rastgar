@@ -1,7 +1,9 @@
 # Todo app
 
-Single-file browser todo app: `index.html`, no build step, no dependencies.
+Browser todo app, no build step, no dependencies. Open `index.html` or serve
+the folder: `python3 -m http.server`.
 
-- Storage is IndexedDB (database `todo`, store `tasks`). Do not add a server.
-- Run it by opening `index.html` or serving the folder: `python3 -m http.server`.
-- Keep everything in `index.html` unless the file passes ~300 lines.
+- `index.html` markup, `app.js` IndexedDB layer and UI, `style.css` styles.
+- Storage is IndexedDB (database `todo`, store `tasks`, version 2). Do not add a server.
+- Task fields: `title`, `done`, `createdAt`, optional `due` (local datetime string), `tags` (lowercase array).
+- Bump `DB_VERSION` only when the store or indexes change; new fields need no migration.
