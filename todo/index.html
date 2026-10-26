@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Todo</title>
+  <style>
+    :root { --ink: #111; --muted: #777; --line: #e5e5e5; --accent: #2563eb; --bg: #fff; }
+    @media (prefers-color-scheme: dark) {
+      :root { --ink: #eee; --muted: #999; --line: #333; --accent: #60a5fa; --bg: #111; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--ink);
+           font: 16px/1.5 system-ui, -apple-system, sans-serif; }
+    main { max-width: 32rem; margin: 0 auto; padding: 2rem 1rem; }
+    h1 { font-size: 1.25rem; font-weight: 600; margin: 0 0 1rem; }
+    form { display: flex; gap: .5rem; margin-bottom: 1rem; }
+    input[type="text"] { flex: 1; padding: .6rem .75rem; font: inherit; color: inherit;
+           background: transparent; border: 1px solid var(--line); border-radius: .5rem; }
+    input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: 1px; border-color: transparent; }
+    button { font: inherit; padding: .6rem .9rem; border: 0; border-radius: .5rem;
+             background: var(--accent); color: #fff; cursor: pointer; }
+    button.ghost { background: transparent; color: var(--muted); padding: .25rem .5rem; }
+    button.ghost:hover { color: var(--ink); }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li { display: flex; align-items: center; gap: .75rem; padding: .6rem 0; border-top: 1px solid var(--line); }
+    li label { flex: 1; cursor: pointer; }
+    li.done label { color: var(--muted); text-decoration: line-through; }
+    .empty { color: var(--muted); padding: 1rem 0; }
+    .count { color: var(--muted); font-size: .85rem; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Todo</h1>
+    <form id="add-form">
+      <input id="add-input" type="text" placeholder="What needs doing?" autocomplete="off" required>
+      <button type="submit">Add</button>
+    </form>
+    <ul id="list"></ul>
+    <p id="empty" class="empty" hidden>Nothing to do.</p>
+    <p id="count" class="count"></p>
+  </main>
+
+  <script>
+    // --- Client-side database: IndexedDB, one object store "tasks" ---------
+    const DB_NAME = 'todo';
+    const STORE = 'tasks';
+
+    function openDb() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, 1);
+        req.onupgradeneeded = () => {
+          const store = req.result.createObjectStore(STORE, { keyPath: 'id', autoIncrement: true });
+          store.createIndex('createdAt', 'createdAt');
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    // Run one operation inside a transaction and resolve with its result.
+    async function tx(mode, fn) {
+      const db = await openDb();
+      return new Promise((resolve, reject) => {
+        const t = db.transaction(STORE, mode);
+        const req = fn(t.objectStore(STORE));
+        t.oncomplete = () => resolve(req && req.result);
+        t.onerror = () => reject(t.error);
+        t.onabort = () => reject(t.error);
+      });
+    }
+
+    const db = {
+      all:    ()        => tx('readonly',  s => s.index('createdAt').getAll()),
+      add:    (title)   => tx('readwrite', s => s.add({ title, done: false, createdAt: Date.now() })),
+      update: (task)    => tx('readwrite', s => s.put(task)),
+      remove: (id)      => tx('readwrite', s => s.delete(id)),
+    };
+
+    // --- UI -----------------------------------------------------------------
+    const form  = document.getElementById('add-form');
+    const input = document.getElementById('add-input');
+    const list  = document.getElementById('list');
+    const empty = document.getElementById('empty');
+    const count = document.getElementById('count');
+
+    async function render() {
+      const tasks = await db.all();
+      list.replaceChildren(...tasks.map(renderTask));
+      empty.hidden = tasks.length > 0;
+      const open = tasks.filter(t => !t.done).length;
+      count.textContent = tasks.length ? `${open} of ${tasks.length} remaining` : '';
+    }
+
+    function renderTask(task) {
+      const li = document.createElement('li');
+      li.dataset.id = task.id;
+      li.classList.toggle('done', task.done);
+
+      const box = document.createElement('input');
+      box.type = 'checkbox';
+      box.id = `task-${task.id}`;
+      box.checked = task.done;
+      box.addEventListener('change', async () => {
+        await db.update({ ...task, done: box.checked });
+        render();
+      });
+
+      const label = document.createElement('label');
+      label.htmlFor = box.id;
+      label.textContent = task.title;
+
+      const del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'ghost';
+      del.textContent = 'Delete';
+      del.setAttribute('aria-label', `Delete ${task.title}`);
+      del.addEventListener('click', async () => {
+        await db.remove(task.id);
+        render();
+      });
+
+      li.append(box, label, del);
+      return li;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const title = input.value.trim();
+      if (!title) return;
+      await db.add(title);
+      input.value = '';
+      input.focus();
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>

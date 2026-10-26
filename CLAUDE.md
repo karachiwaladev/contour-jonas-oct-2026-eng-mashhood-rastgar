@@ -27,7 +27,7 @@ Keep this file short and abstract. It is an index, not a manual.
 
 | Folder | Purpose | Docs |
 |--------|---------|------|
-| _(none yet)_ | Add a row when the first project folder is created | |
+| `todo/` | Browser todo app on IndexedDB (create, complete, delete) | @todo/CLAUDE.md |
 
 ### Skills
 
