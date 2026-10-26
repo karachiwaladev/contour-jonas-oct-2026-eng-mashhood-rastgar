@@ -11,7 +11,7 @@ Ticks never overlap (the session cron fires only while idle), so your own 👀 r
 
 ## One tick
 
-1. **List unclaimed tickets:** `bash .claude/skills/factory-loop/scripts/tickets.sh`
+1. **List unclaimed tickets:** `cd "$(git rev-parse --show-toplevel)" && bash .claude/skills/factory-loop/scripts/tickets.sh`
    Prints open issues without your 👀 as JSON lines (number, title, body). No output: say "Queue empty" and stop.
 2. **For each ticket, oldest first:**
    1. Claim: `gh api -X POST 'repos/{owner}/{repo}/issues/N/reactions' -f content=eyes`
