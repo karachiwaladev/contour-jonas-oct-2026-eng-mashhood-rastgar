@@ -15,6 +15,17 @@
       <div class="row">
         <label>Due <input id="add-due" type="datetime-local"></label>
         <label class="grow">Tags <input id="add-tags" type="text" placeholder="work, home" autocomplete="off"></label>
+        <label>Repeat
+          <select id="add-repeat">
+            <option value="none">none</option>
+            <option value="day">daily</option>
+            <option value="week">weekly</option>
+            <option value="month">monthly</option>
+            <option value="year">yearly</option>
+            <option value="custom">every N days</option>
+          </select>
+        </label>
+        <label id="add-every-label" hidden>N days <input id="add-every" type="number" min="2" max="365" value="2"></label>
         <button type="submit">Add</button>
       </div>
     </form>

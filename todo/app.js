@@ -2,7 +2,7 @@
 
 // --- Client-side database -------------------------------------------------
 const DB_NAME = 'todo';
-const DB_VERSION = 2; // v1 created the store; v2 adds due/tags fields (no migration needed)
+const DB_VERSION = 3; // v1 created the store; v2 added due/tags; v3 adds repeat (no migration needed)
 const STORE = 'tasks';
 
 function openDb() {
@@ -56,6 +56,54 @@ function formatDue(due) {
   });
 }
 
+// --- Recurrence -------------------------------------------------------------
+// repeat: null | { unit: 'day'|'week'|'month'|'year', every: N }
+const UNIT_LABEL = { day: 'daily', week: 'weekly', month: 'monthly', year: 'yearly' };
+
+function repeatLabel(repeat) {
+  if (!repeat) return '';
+  if (repeat.unit === 'day' && repeat.every > 1) return `repeats every ${repeat.every} days`;
+  return `repeats ${UNIT_LABEL[repeat.unit]}`;
+}
+
+const pad = n => String(n).padStart(2, '0');
+function toLocalInput(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// One step forward. Month and year steps keep the day of month, clamped to the month's last day.
+function addInterval(date, repeat) {
+  const d = new Date(date);
+  if (repeat.unit === 'day')  { d.setDate(d.getDate() + repeat.every); return d; }
+  if (repeat.unit === 'week') { d.setDate(d.getDate() + 7 * repeat.every); return d; }
+  const months = repeat.unit === 'month' ? repeat.every : 12 * repeat.every;
+  const target = new Date(d.getFullYear(), d.getMonth() + months, 1, d.getHours(), d.getMinutes());
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(d.getDate(), lastDay));
+  return target;
+}
+
+// First occurrence strictly after now, stepping from the scheduled due time.
+function nextOccurrence(due, repeat) {
+  const now = new Date();
+  let d = new Date(due);
+  do { d = addInterval(d, repeat); } while (d <= now);
+  return toLocalInput(d);
+}
+
+// Read a repeat value from a <select> plus an "every N days" number input.
+function readRepeat(select, every) {
+  const v = select.value;
+  if (v === 'none') return null;
+  if (v === 'custom') return { unit: 'day', every: Math.min(365, Math.max(2, parseInt(every.value, 10) || 2)) };
+  return { unit: v, every: 1 };
+}
+
+function repeatToSelect(repeat) {
+  if (!repeat) return 'none';
+  return repeat.unit === 'day' && repeat.every > 1 ? 'custom' : repeat.unit;
+}
+
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
   Object.assign(node, props);
@@ -70,6 +118,9 @@ const form      = document.getElementById('add-form');
 const addTitle  = document.getElementById('add-title');
 const addDue    = document.getElementById('add-due');
 const addTags   = document.getElementById('add-tags');
+const addRepeat = document.getElementById('add-repeat');
+const addEvery  = document.getElementById('add-every');
+const addEveryLabel = document.getElementById('add-every-label');
 const statusBar = document.getElementById('status-filter');
 const tagBar    = document.getElementById('tag-filter');
 const list      = document.getElementById('list');
@@ -120,6 +171,9 @@ function renderTask(task) {
   const box = el('input', { type: 'checkbox', id: `task-${task.id}`, checked: task.done });
   box.addEventListener('change', async () => {
     await db.update({ ...task, done: box.checked });
+    if (box.checked && task.repeat && task.due) {
+      await db.add({ title: task.title, tags: task.tags || [], repeat: task.repeat, due: nextOccurrence(task.due, task.repeat) });
+    }
     render();
   });
 
@@ -128,6 +182,7 @@ function renderTask(task) {
   if (task.due) {
     meta.append(el('span', { className: 'due', textContent: (isOverdue(task) ? 'Overdue · ' : 'Due ') + formatDue(task.due) }));
   }
+  if (task.repeat) meta.append(el('span', { className: 'repeat', textContent: repeatLabel(task.repeat) }));
   for (const tag of task.tags || []) meta.append(el('span', { className: 'chip', textContent: tag }));
 
   const edit = el('button', { type: 'button', className: 'ghost', textContent: 'Edit' });
@@ -149,12 +204,21 @@ function renderEditor(task) {
   const title = el('input', { type: 'text', value: task.title, required: true, className: 'edit-title' });
   const due   = el('input', { type: 'datetime-local', value: task.due || '', className: 'edit-due' });
   const tags  = el('input', { type: 'text', value: (task.tags || []).join(', '), placeholder: 'work, home', className: 'edit-tags' });
+  const repeat = el('select', { className: 'edit-repeat' },
+    ...[['none', 'none'], ['day', 'daily'], ['week', 'weekly'], ['month', 'monthly'], ['year', 'yearly'], ['custom', 'every N days']]
+      .map(([v, t]) => el('option', { value: v, textContent: t })));
+  repeat.value = repeatToSelect(task.repeat);
+  const every = el('input', { type: 'number', min: 2, max: 365, value: task.repeat?.every > 1 ? task.repeat.every : 2, className: 'edit-every' });
+  const everyLabel = el('label', { hidden: repeat.value !== 'custom' }, 'N days ', every);
+  repeat.addEventListener('change', () => { everyLabel.hidden = repeat.value !== 'custom'; });
 
   const save = el('button', { type: 'button', textContent: 'Save' });
   save.addEventListener('click', async () => {
     const t = title.value.trim();
     if (!t) { title.focus(); return; }
-    await db.update({ ...task, title: t, due: due.value || null, tags: parseTags(tags.value) });
+    const rep = readRepeat(repeat, every);
+    if (rep && !due.value) { due.focus(); return; }
+    await db.update({ ...task, title: t, due: due.value || null, tags: parseTags(tags.value), repeat: rep });
     state.editing = null;
     render();
   });
@@ -166,7 +230,9 @@ function renderEditor(task) {
     title,
     el('div', { className: 'row' },
       el('label', {}, 'Due ', due),
-      el('label', { className: 'grow' }, 'Tags ', tags)),
+      el('label', { className: 'grow' }, 'Tags ', tags),
+      el('label', {}, 'Repeat ', repeat),
+      everyLabel),
     el('div', { className: 'buttons' }, save, cancel));
 
   li.append(editor);
@@ -179,11 +245,16 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const title = addTitle.value.trim();
   if (!title) return;
-  await db.add({ title, due: addDue.value || null, tags: parseTags(addTags.value) });
+  const repeat = readRepeat(addRepeat, addEvery);
+  if (repeat && !addDue.value) { addDue.focus(); return; }
+  await db.add({ title, due: addDue.value || null, tags: parseTags(addTags.value), repeat });
   form.reset();
+  addEveryLabel.hidden = true;
   addTitle.focus();
   render();
 });
+
+addRepeat.addEventListener('change', () => { addEveryLabel.hidden = addRepeat.value !== 'custom'; });
 
 statusBar.addEventListener('click', (e) => {
   const btn = e.target.closest('button[data-status]');
