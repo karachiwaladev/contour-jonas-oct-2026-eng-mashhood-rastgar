@@ -2,7 +2,7 @@
 
 // --- Client-side database -------------------------------------------------
 const DB_NAME = 'todo';
-const DB_VERSION = 3; // v1 created the store; v2 added due/tags; v3 adds repeat (no migration needed)
+const DB_VERSION = 4; // v1 created the store; v2 added due/tags; v3 added repeat; v4 adds priority (no migration needed)
 const STORE = 'tasks';
 
 function openDb() {
@@ -104,6 +104,11 @@ function repeatToSelect(repeat) {
   return repeat.unit === 'day' && repeat.every > 1 ? 'custom' : repeat.unit;
 }
 
+// --- Priority ----------------------------------------------------------------
+// priority: 'none' | 'low' | 'medium' | 'high'  (missing reads as 'none')
+const PRIORITIES = ['none', 'low', 'medium', 'high'];
+const priorityOf = task => PRIORITIES.includes(task.priority) ? task.priority : 'none';
+
 function el(tag, props = {}, ...children) {
   const node = document.createElement(tag);
   Object.assign(node, props);
@@ -112,7 +117,7 @@ function el(tag, props = {}, ...children) {
 }
 
 // --- State and UI -----------------------------------------------------------
-const state = { status: 'all', tag: null, editing: null };
+const state = { status: 'all', tag: null, priority: null, editing: null };
 
 const form      = document.getElementById('add-form');
 const addTitle  = document.getElementById('add-title');
@@ -121,6 +126,8 @@ const addTags   = document.getElementById('add-tags');
 const addRepeat = document.getElementById('add-repeat');
 const addEvery  = document.getElementById('add-every');
 const addEveryLabel = document.getElementById('add-every-label');
+const addPriority = document.getElementById('add-priority');
+const priorityBar = document.getElementById('priority-filter');
 const statusBar = document.getElementById('status-filter');
 const tagBar    = document.getElementById('tag-filter');
 const list      = document.getElementById('list');
@@ -131,11 +138,13 @@ function matches(task) {
   if (state.status === 'active' && task.done) return false;
   if (state.status === 'done' && !task.done) return false;
   if (state.tag && !(task.tags || []).includes(state.tag)) return false;
+  if (state.priority && priorityOf(task) !== state.priority) return false;
   return true;
 }
 
 async function render() {
   const tasks = await db.all();
+  renderPriorityFilter();
   renderTagFilter(tasks);
 
   const visible = tasks.filter(matches);
@@ -143,10 +152,20 @@ async function render() {
   empty.hidden = visible.length > 0;
 
   const open = tasks.filter(t => !t.done).length;
-  const filtered = state.status !== 'all' || state.tag;
+  const filtered = state.status !== 'all' || state.tag || state.priority;
   count.textContent = tasks.length
     ? `${open} of ${tasks.length} remaining${filtered ? `, showing ${visible.length}` : ''}`
     : '';
+}
+
+function renderPriorityFilter() {
+  priorityBar.replaceChildren(...['high', 'medium', 'low', 'none'].map(p => el('button', {
+    type: 'button',
+    className: 'chip' + (state.priority === p ? ' active' : ''),
+    textContent: p[0].toUpperCase() + p.slice(1),
+    ariaPressed: String(state.priority === p),
+    onclick: () => { state.priority = state.priority === p ? null : p; render(); },
+  })));
 }
 
 function renderTagFilter(tasks) {
@@ -172,13 +191,14 @@ function renderTask(task) {
   box.addEventListener('change', async () => {
     await db.update({ ...task, done: box.checked });
     if (box.checked && task.repeat && task.due) {
-      await db.add({ title: task.title, tags: task.tags || [], repeat: task.repeat, due: nextOccurrence(task.due, task.repeat) });
+      await db.add({ title: task.title, tags: task.tags || [], repeat: task.repeat, priority: priorityOf(task), due: nextOccurrence(task.due, task.repeat) });
     }
     render();
   });
 
   const title = el('label', { className: 'title', htmlFor: box.id, textContent: task.title });
   const meta = el('div', { className: 'meta' });
+  if (priorityOf(task) !== 'none') meta.append(el('span', { className: `prio ${priorityOf(task)}`, textContent: priorityOf(task) }));
   if (task.due) {
     meta.append(el('span', { className: 'due', textContent: (isOverdue(task) ? 'Overdue · ' : 'Due ') + formatDue(task.due) }));
   }
@@ -210,6 +230,9 @@ function renderEditor(task) {
   repeat.value = repeatToSelect(task.repeat);
   const every = el('input', { type: 'number', min: 2, max: 365, value: task.repeat?.every > 1 ? task.repeat.every : 2, className: 'edit-every' });
   const everyLabel = el('label', { hidden: repeat.value !== 'custom' }, 'N days ', every);
+  const priority = el('select', { className: 'edit-priority' },
+    ...PRIORITIES.map(v => el('option', { value: v, textContent: v })));
+  priority.value = priorityOf(task);
   repeat.addEventListener('change', () => { everyLabel.hidden = repeat.value !== 'custom'; });
 
   const save = el('button', { type: 'button', textContent: 'Save' });
@@ -218,7 +241,7 @@ function renderEditor(task) {
     if (!t) { title.focus(); return; }
     const rep = readRepeat(repeat, every);
     if (rep && !due.value) { due.focus(); return; }
-    await db.update({ ...task, title: t, due: due.value || null, tags: parseTags(tags.value), repeat: rep });
+    await db.update({ ...task, title: t, due: due.value || null, tags: parseTags(tags.value), repeat: rep, priority: priority.value });
     state.editing = null;
     render();
   });
@@ -232,7 +255,8 @@ function renderEditor(task) {
       el('label', {}, 'Due ', due),
       el('label', { className: 'grow' }, 'Tags ', tags),
       el('label', {}, 'Repeat ', repeat),
-      everyLabel),
+      everyLabel,
+      el('label', {}, 'Priority ', priority)),
     el('div', { className: 'buttons' }, save, cancel));
 
   li.append(editor);
@@ -247,7 +271,7 @@ form.addEventListener('submit', async (e) => {
   if (!title) return;
   const repeat = readRepeat(addRepeat, addEvery);
   if (repeat && !addDue.value) { addDue.focus(); return; }
-  await db.add({ title, due: addDue.value || null, tags: parseTags(addTags.value), repeat });
+  await db.add({ title, due: addDue.value || null, tags: parseTags(addTags.value), repeat, priority: addPriority.value });
   form.reset();
   addEveryLabel.hidden = true;
   addTitle.focus();

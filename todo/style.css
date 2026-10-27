@@ -42,6 +42,10 @@ li.done label.title { color: var(--muted); text-decoration: line-through; }
 li .meta { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin-top: .15rem; font-size: .8rem; color: var(--muted); }
 li .due { white-space: nowrap; }
 li .repeat { white-space: nowrap; }
+.prio { font-size: .75rem; font-weight: 600; padding: .1rem .45rem; border-radius: .3rem; text-transform: capitalize; }
+.prio.high { background: var(--danger); color: #fff; }
+.prio.medium { background: #f59e0b; color: #111; }
+.prio.low { background: var(--chip); color: var(--muted); }
 li.overdue .due { color: var(--danger); font-weight: 600; }
 li .actions { display: flex; gap: .25rem; }
 

@@ -26,6 +26,14 @@
           </select>
         </label>
         <label id="add-every-label" hidden>N days <input id="add-every" type="number" min="2" max="365" value="2"></label>
+        <label>Priority
+          <select id="add-priority">
+            <option value="none">none</option>
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
         <button type="submit">Add</button>
       </div>
     </form>
@@ -35,6 +43,7 @@
       <button type="button" data-status="active" aria-pressed="false">Active</button>
       <button type="button" data-status="done" aria-pressed="false">Completed</button>
     </div>
+    <div id="priority-filter" class="chips" role="group" aria-label="Priority filter"></div>
     <div id="tag-filter" class="chips" role="group" aria-label="Tag filter" hidden></div>
 
     <ul id="list"></ul>
