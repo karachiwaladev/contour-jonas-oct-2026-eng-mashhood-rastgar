@@ -34,6 +34,7 @@ Keep this file short and abstract. It is an index, not a manual.
 | Skill | Use when | Docs |
 |-------|----------|------|
 | `factory-loop` | Processing GitHub issue tickets on a `/loop` interval | @.claude/skills/factory-loop/SKILL.md |
+| `persona-test` | 5 persona agents test a change in parallel before review | @.claude/skills/persona-test/SKILL.md |
 
 ### Reference
 
