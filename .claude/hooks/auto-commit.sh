@@ -12,6 +12,8 @@ cd "$root"
 [ "$(git branch --show-current)" = "main" ] || exit 0
 
 git add -A
+# never commit secrets, even if a .gitignore is missing
+git reset -q -- .env .env.* 2>/dev/null || true
 if ! git diff --cached --quiet; then
   git commit -q \
     -m "chore: auto-commit on stop ($(date -u +%Y-%m-%dT%H:%M:%SZ))" \
