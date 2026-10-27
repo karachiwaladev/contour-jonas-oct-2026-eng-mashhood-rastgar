@@ -5,11 +5,26 @@ description: Use when a change to a web project must be tested by simulated user
 
 # Persona Test
 
-Five persona agents use the app in parallel, each in its own Chrome tab and its own origin, and report findings. The result is a friction map: issues ranked by how many personas hit them.
+Five personas from `<project>/personas.yaml` use the app and the result is a friction map: issues ranked by how many personas hit them. Two modes:
 
-Personas live in `<project>/personas.yaml` (shoal format, exactly 5). The agents are Claude Code subagents in this session, which is the supported way to use a Claude subscription. Do not use shoal's `--provider subscription`: it reads the Claude Code OAuth token from outside Claude Code.
+| Mode | How | Time | Use for |
+|---|---|---|---|
+| **fast** (default) | `runner/persona-run.mjs`: Jev picks each move in the persona's style, code detects the bugs (after [quicke2e](https://github.com/dmoka/quicke2e)) | seconds | every build tick |
+| **deep** | 5 Claude subagents drive Chrome and narrate (section "Deep run") | minutes | when asked, or when fast finds nothing on a large UI change |
 
-## Run
+## Fast run
+
+1. Serve the project once: `(cd <project> && python3 -m http.server 8771 --bind 127.0.0.1 >/dev/null 2>&1 &)` (check the port is free first; never kill another project's process). Each persona gets its own browser context, so storage is isolated on one port.
+2. Run: `node .claude/skills/persona-test/runner/persona-run.mjs --personas <project>/personas.yaml --url http://127.0.0.1:8771/index.html --steps 20 --out docs/persona-runs/<ticket-or-date>`
+   First time only: `(cd .claude/skills/persona-test/runner && npm install)`. `JEV_API_KEY` comes from the environment or the gitignored repo-root `.env`; never print it or commit it.
+3. Regression replay (no model, deterministic): `--engine script --script runner/scenarios-todo.json`. Add a scenario whenever a confirmed bug is fixed.
+4. The runner writes `report.md`, `results.json` and screenshots. Findings come from code oracles, so they are evidence, not opinions:
+   console/page errors, injected payload executing or rendering as markup, horizontal overflow, `Invalid Date`/`NaN`/`undefined` rendered, focus lost (keyboard personas), one action adding several rows, stored IndexedDB records changing across a reload.
+5. Stop the server you started.
+
+Persona fields the fast runner uses: `goal`, `inputs.text|dates|numbers` (Jev never writes text; every typed value comes from here), `behaviour.mistap|double_click|keyboard_only`, `patience_steps`.
+
+## Deep run
 
 1. **Serve five isolated copies.** Each origin gets its own IndexedDB, so agents cannot corrupt each other's data:
    `for p in 8771 8772 8773 8774 8775; do lsof -iTCP:$p -sTCP:LISTEN -n -P >/dev/null || (cd <project> && python3 -m http.server $p --bind 127.0.0.1 >/dev/null 2>&1 &); done`
@@ -27,7 +42,7 @@ Personas live in `<project>/personas.yaml` (shoal format, exactly 5). The agents
 
 ## In a factory-loop build tick
 
-Run after the ticket's own Chrome verification and before committing. Then:
+Run the **fast** mode after the ticket's own Chrome verification and before committing. Then:
 - A **confirmed high** issue caused by this ticket's change: fix it, re-verify that one issue, note the fix. Do not re-run the whole panel.
 - Anything else, including issues that predate this ticket: do not fix. List it in the PR body under "Persona test" and leave it for a new ticket.
 - Commit `docs/persona-runs/ticket-N/` with the ticket files. Put the friction map table in the PR body.
@@ -40,4 +55,6 @@ Run after the ticket's own Chrome verification and before committing. Then:
 | Reporting an agent's claim as a bug | Reproduce high/medium findings yourself first |
 | Fixing every finding inside the ticket | Only confirmed highs caused by this change; the rest become new tickets |
 | Using shoal subscription mode | Not allowed; subagents in this session are the subscription path |
+| Committing `.env` or printing the Jev key | `.env` is gitignored and the Stop hook unstages it; keep it that way |
+| Trusting a fast-mode finding without its repro | Each finding carries the exact moves; replay them before fixing |
 | Agents sharing a tab | Each calls tabs_create_mcp and uses only its own tab id |

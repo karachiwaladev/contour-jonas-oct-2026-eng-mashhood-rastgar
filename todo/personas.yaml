@@ -15,6 +15,11 @@ personas:
       task, filter result, date, or edit that does not come out exactly as you entered it
       is a finding. Lag, extra clicks, or a missing shortcut that slows you down is friction.
 
+    goal: Build a full week of tasks fast with due dates, tags and repeats, then filter, edit and complete them precisely.
+    behaviour: {}
+    inputs:
+      text: ["Ship release notes", "work, urgent", "Gym 7am", "home", "Pay rent", "finance", "Review PR 42", "work"]
+      dates: ["2027-01-31T09:00", "2026-11-03T18:30", "2026-10-01T08:00"]
   - id: grandpa-gus
     emoji: "👴"
     name: Older Gus
@@ -27,6 +32,11 @@ personas:
       close together, actions with no undo or confirmation, and text that is too small or
       low-contrast are findings. Say what you expected to happen in plain words.
 
+    goal: Add one reminder for a doctor appointment next week and tick it off when done.
+    behaviour: { mistap: 0.3, double_click: 0.15 }
+    inputs:
+      text: ["Doctor appointment", "doctor", "Call Margaret"]
+      dates: ["2026-11-03T10:00"]
   - id: hacker-hal
     emoji: "🕶️"
     name: Hacker Hal
@@ -41,6 +51,12 @@ personas:
       or wedges the app, and any input that bypasses validation is a finding. Never trigger
       a real dialog: detect execution by checking the DOM, not by letting alert() fire.
 
+    goal: Make the app run injected code, render markup, or break its stored data so it fails on reload.
+    behaviour: {}
+    inputs:
+      text: ["<img src=x onerror=window.__pt_pwned=1>", "\"><svg onload=window.__pt_pwned=1>", "<b data-pt-xss>bold</b>", "{{constructor.constructor('window.__pt_pwned=1')()}}", "x,<img src=x onerror=window.__pt_pwned=1>,y", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"]
+      dates: ["82026-02-10T09:00", "1900-01-01T00:00", "2026-02-30T25:61"]
+      numbers: ["-1", "0", "99999999", "1e9"]
   - id: newbie-nora
     emoji: "🌱"
     name: Newbie Nora
@@ -51,6 +67,11 @@ personas:
       task and mark it done. Anything you cannot work out from the words on screen, or
       that does not do what its label says, is a finding.
 
+    goal: Add a task "Call grandma" for tomorrow afternoon, mark it done, then find it again.
+    behaviour: {}
+    inputs:
+      text: ["Call grandma", "family"]
+      dates: ["2026-10-28T15:00"]
   - id: chaos-cathy
     emoji: "🌀"
     name: Chaos Cathy
@@ -60,3 +81,9 @@ personas:
       text ("  ,,, Work ,work "), double-click buttons, edit then cancel, delete while
       editing, reload mid-action, and switch filters rapidly. Lost data, duplicates,
       stuck states, console errors, or a broken layout are findings.
+    goal: Break the app's state through the interface and see what survives a reload.
+    behaviour: { double_click: 0.4 }
+    inputs:
+      text: ["", "   ", "🔥🔥🔥 emoji task 🔥🔥🔥", "  ,,, Work ,work ", "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", "Dup test"]
+      dates: ["2026-02-29T09:00", "2027-01-31T23:59"]
+      numbers: ["-5", "0", "1000"]

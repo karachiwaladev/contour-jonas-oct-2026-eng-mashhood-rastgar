@@ -1,0 +1,6 @@
+{
+  "_doc": "Regression replays for the todo app: each persona replays moves matched by regex against move descriptions. Expected findings are the bugs confirmed in docs/persona-runs/2026-10-27-pilot.",
+  "hacker-hal": ["type \"<img src=x onerror", "set Due to 82026", "click Add \\[button\\]", "reload the page"],
+  "chaos-cathy": ["type \"BBBB", "click Add \\[button\\]", "reload the page"],
+  "newbie-nora": ["type \"Call grandma\" into What", "click Add \\[button\\]", "reload the page"]
+}
