@@ -40,6 +40,7 @@ Keep this file short and abstract. It is an index, not a manual.
 | File | Purpose |
 |------|---------|
 | @README.md | Workshop brief: how tickets arrive, scoring, ground rules |
+| @docs/reviews/2026-10-27-session-failures.md | Session-trace review: failures to fix in factory-loop and hooks |
 
 ## Working rules
 
