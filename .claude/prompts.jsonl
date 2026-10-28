@@ -622,3 +622,4 @@
 {"session_id":"2ce9bdc4-2bfc-4e95-9bc4-ef62bc687794","uuid":"57c1d83d-d14e-4d45-aafc-b6bce0490bc0","timestamp":"2026-10-28T06:34:06.048Z","source":"command","prompt":"/factory-loop"}
 {"session_id":"2ce9bdc4-2bfc-4e95-9bc4-ef62bc687794","uuid":"c63471e5-2531-4ff8-8f9e-ec88ed7a9f90","timestamp":"2026-10-28T06:35:06.090Z","source":"command","prompt":"/factory-loop"}
 {"session_id":"2ce9bdc4-2bfc-4e95-9bc4-ef62bc687794","uuid":"7c1116f0-5e4e-4e29-a169-88e5f8d86c44","timestamp":"2026-10-28T06:36:06.237Z","source":"command","prompt":"/factory-loop"}
+{"session_id":"2ce9bdc4-2bfc-4e95-9bc4-ef62bc687794","uuid":"f91d0901-c045-457a-8ae7-af67533773ba","timestamp":"2026-10-28T06:36:34.692Z","source":"user","prompt":"stop all loops"}
